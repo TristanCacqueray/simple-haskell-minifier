@@ -1,0 +1,84 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           simple-haskell-minifier
+version:        0.1.1.0
+homepage:       https://github.com/TristanCacqueray/simple-haskell-minifier#readme
+bug-reports:    https://github.com/TristanCacqueray/simple-haskell-minifier/issues
+author:         Tristan Cacqueray
+maintainer:     tdecacqu@redhat.com
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/TristanCacqueray/simple-haskell-minifier
+
+executable simple-haskell-minifier
+  main-is: Minifier.hs
+  other-modules:
+      GHCHaskell
+      SimpleHaskell
+      Paths_simple_haskell_minifier
+  hs-source-dirs:
+      src
+  default-extensions:
+      OverloadedStrings
+      ImportQualifiedPost
+      LambdaCase
+      DerivingStrategies
+      DuplicateRecordFields
+      OverloadedRecordDot
+      BlockArguments
+      StrictData
+      MultiWayIf
+  ghc-options: -Wall -fwarn-incomplete-uni-patterns -Wno-partial-type-signatures -fwrite-ide-info -hiedir=.hie -Wno-missing-methods -main-is Minifier
+  build-depends:
+      base <5
+    , bytestring
+    , containers
+    , directory
+    , ghc-lib-parser
+    , pretty-simple
+    , tasty
+    , tasty-golden
+    , text
+  default-language: GHC2021
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      GHCHaskell
+      Minifier
+      SimpleHaskell
+      Paths_simple_haskell_minifier
+  hs-source-dirs:
+      test
+      src
+  default-extensions:
+      OverloadedStrings
+      ImportQualifiedPost
+      LambdaCase
+      DerivingStrategies
+      DuplicateRecordFields
+      OverloadedRecordDot
+      BlockArguments
+      StrictData
+      MultiWayIf
+  ghc-options: -Wall -fwarn-incomplete-uni-patterns -Wno-partial-type-signatures -fwrite-ide-info -hiedir=.hie -Wno-missing-methods -threaded -rtsopts -with-rtsopts=-T
+  build-depends:
+      base <5
+    , bytestring
+    , containers
+    , directory
+    , ghc-lib-parser
+    , pretty-simple
+    , tasty
+    , tasty-golden
+    , text
+  default-language: GHC2021
