@@ -121,6 +121,8 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
         EApp e1 e2 -> EApp (renameExpr env e1) (renameExpr env e2)
         ELam bm -> ELam (renameMatch env bm)
         ECase e bms -> ECase (renameExpr env e) (map (renameMatch env) bms)
+        EDo xs -> EDo (map (renameStatement env) xs)
+        EComp xs -> EComp (map (renameStatement env) xs)
         EList xs -> EList (map (renameExpr env) xs)
         ETuple xs -> ETuple (map (renameExpr env) xs)
         EPar expr -> EPar (renameExpr env expr)
@@ -133,6 +135,11 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
                 newEnv = bindingEnv <> env
                 newBindings = map (renameBinding newEnv) bindings
              in ELet newBindings (renameExpr newEnv e)
+
+    renameStatement :: NameEnv -> Statement -> Statement
+    renameStatement env = \case
+        SBind pat expr -> SBind (renamePattern env pat) (renameExpr env expr)
+        SBody expr -> SBody (renameExpr env expr)
 
 type BindedVars = Set LexicalFastString
 
@@ -177,6 +184,8 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
             EApp e1 e2 -> foldMap goExpr [e1, e2]
             ELam bm -> goMatches bm
             ECase e bms -> goExpr e <> concatMap goMatches bms
+            EDo xs -> foldMap goStatement xs
+            EComp xs -> foldMap goStatement xs
             EList xs -> foldMap goExpr xs
             ETuple xs -> foldMap goExpr xs
             EPar e -> goExpr e
@@ -186,6 +195,11 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
                 let bindVars :: BindedVars
                     bindVars = Set.fromList (map (\(Binding n _) -> LexicalFastString n) bindings)
                  in goGexpr (Set.union exprVars bindVars) (GuardedExpr [] e)
+
+        goStatement :: Statement -> [Name]
+        goStatement = \case
+            SBind _pat e -> goExpr e
+            SBody e -> goExpr e
 
 replacableNamesEnv :: [Char] -> [Name] -> NameEnv
 replacableNamesEnv chars repeatedNames = zip (replacableNames repeatedNames) chars
@@ -270,6 +284,8 @@ inlineExprs inlined (Binding bname matches) = Binding bname (map (inlineMatch in
         ELam bm -> ELam (inlineMatch ix bm)
         ECase e bms -> ECase (inlineExpr ix e) (map (inlineMatch ix) bms)
         EApp e1 e2 -> EApp (inlineExpr ix e1) (inlineExpr ix e2)
+        EDo xs -> EDo (map (inlineStatement ix) xs)
+        EComp xs -> EComp (map (inlineStatement ix) xs)
         EList xs -> EList (map (inlineExpr ix) xs)
         ETuple xs -> ETuple (map (inlineExpr ix) xs)
         EPar xs -> EPar (inlineExpr ix xs)
@@ -278,6 +294,11 @@ inlineExprs inlined (Binding bname matches) = Binding bname (map (inlineMatch in
             ELet (map (inlineExprs ix) bindings) (inlineExpr ix e)
         EIf e1 e2 e3 -> EIf (inlineExpr ix e1) (inlineExpr ix e2) (inlineExpr ix e3)
         ERange e1 mE2 mE3 -> ERange (inlineExpr ix e1) (inlineExpr ix <$> mE2) (inlineExpr ix <$> mE3)
+
+    inlineStatement :: IExprs -> Statement -> Statement
+    inlineStatement ix = \case
+        SBind pat e -> SBind pat (inlineExpr ix e)
+        SBody e -> SBody (inlineExpr ix e)
 
 countOccurenceInBinding :: Name -> Binding -> Int
 countOccurenceInBinding name (Binding bname matches)
@@ -314,6 +335,8 @@ countOccurenceInBinding name (Binding bname matches)
         EApp e1 e2 -> countInExprs [e1, e2]
         ELam bm -> countInMatches bm
         ECase e bms -> countInExpr e + sum (map countInMatches bms)
+        EDo xs -> sum (map countInStatement xs)
+        EComp xs -> sum (map countInStatement xs)
         EOp e1 e2 e3 -> countInExprs [e1, e2, e3]
         EList xs -> countInExprs xs
         ETuple xs -> countInExprs xs
@@ -326,6 +349,11 @@ countOccurenceInBinding name (Binding bname matches)
                 countInExpr expr + sum (map (countOccurenceInBinding name) bindings)
         EIf e1 e2 e3 -> countInExprs [e1, e2, e3]
         ERange e mE1 mE2 -> countInExprs $ e : maybeToList mE1 <> maybeToList mE2
+
+    countInStatement :: Statement -> Int
+    countInStatement = \case
+        SBind _pat e -> countInExpr e
+        SBody e -> countInExpr e
 
     bindingNames :: [Binding] -> [Name]
     bindingNames = map (\(Binding n _) -> n)
@@ -397,7 +425,11 @@ renderBinding (Binding name matches) = map renderTopMatch matches
         EApp e1 e2 -> renderExpr e1 `concatName` renderExpr e2
         ELam bm -> "\\" <> T.dropWhile (== ' ') (renderMatch "->" bm)
         ECase e bms -> "case " <> renderExpr e <> " of {" <> T.intercalate ";" (map (renderMatch "->") bms) <> "}"
-        EOp e1 e2 e3 -> renderExpr e1 <> removePar (renderExpr e2) <> renderExpr e3
+        EDo xs -> "do {" <> T.intercalate ";" (map renderStatement xs) <> "}"
+        EComp xs ->
+            let (l, i) = (last xs, init xs)
+             in "[" <> renderStatement l <> "|" <> T.intercalate "," (map renderStatement i) <> "]"
+        EOp e1 e2 e3 -> renderExpr e1 <> renderOperator (renderExpr e2) <> renderExpr e3
         EPar e -> "(" <> renderExpr e <> ")"
         EList xs -> "[" <> mconcat (map renderExpr xs) <> "]"
         ETuple xs -> "(" <> T.intercalate "," (map renderExpr xs) <> ")"
@@ -410,7 +442,18 @@ renderBinding (Binding name matches) = map renderTopMatch matches
         EPar e -> renderExpr e
         e -> renderExpr e
 
+    renderStatement :: Statement -> Text
+    renderStatement = \case
+        SBind pat e -> T.dropWhile (== ' ') (renderPat pat) <> "<-" <> renderExpr e
+        SBody e -> renderExpr e
+
     removePar = T.dropWhile (== '(') . T.dropWhileEnd (== ')')
+    renderOperator baseName =
+        let opName = removePar baseName
+            opText
+                | maybe False (isLetter . fst) (T.uncons opName) = "`" <> opName <> "`"
+                | otherwise = opName
+         in opText
 
 minifies :: (FilePath, String) -> Text
 minifies =

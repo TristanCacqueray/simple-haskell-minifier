@@ -16,6 +16,10 @@ data Expr
       ELam BindingMatch
     | -- | Case expression
       ECase Expr [BindingMatch]
+    | -- | Do expression
+      EDo [Statement]
+    | -- | List comprehension
+      EComp [Statement]
     | -- | Operator: e1 (op) e2
       EOp Expr Expr Expr
     | -- | List: [e1, e2, ...]
@@ -30,6 +34,11 @@ data Expr
       EIf Expr Expr Expr
     | -- | [e1..e2]
       ERange Expr (Maybe Expr) (Maybe Expr)
+    deriving (Show)
+
+data Statement
+    = SBind Pattern Expr
+    | SBody Expr
     deriving (Show)
 
 -- | Expr with guard: |e1,e2,.. = e

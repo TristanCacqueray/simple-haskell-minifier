@@ -9,7 +9,7 @@ import Data.Maybe (mapMaybe)
 import GHC.Data.Bag (bagToList)
 import GHC.Data.FastString (FastString, fsLit, mkFastString)
 import GHC.Data.StringBuffer (stringToStringBuffer)
-import GHC.Hs (ArithSeqInfo (..), GRHS (..), GRHSs (..), HsConDetails (..), HsExpr (..), HsModule (..), HsTupArg (..), LHsExpr, Match (..), Pat (..), StmtLR (..))
+import GHC.Hs (ArithSeqInfo (..), GRHS (..), GRHSs (..), HsConDetails (..), HsDoFlavour (..), HsExpr (..), HsModule (..), HsTupArg (..), LHsExpr, Match (..), Pat (..), StmtLR (..))
 import GHC.Hs.Binds (HsBindLR (..), HsLocalBindsLR (..), HsValBindsLR (..))
 import GHC.Hs.Decls (HsDecl (..))
 import GHC.Hs.Extension (GhcPs)
@@ -85,7 +85,20 @@ decodeExpr = \case
     HsLet _x _let (HsValBinds _ (ValBinds _ (bagToList -> binds) _sigs)) _in (rl -> e) ->
         let bindings = map (decodeBinding . rl) binds
          in ELet bindings (decodeExpr e)
+    HsDo _ flavor (rl -> xs) -> case flavor of
+        ListComp -> EComp (map (decodeStatement . rl) xs)
+        DoExpr Nothing -> EDo (map (decodeStatement . rl) xs)
+        _ -> error ("Unknown do flavor: " <> showPpr xs)
+    SectionL{} -> ELit "SectionL"
+    SectionR _ (rl -> e1) (rl -> e2) -> EApp (decodeExpr e1) (decodeExpr e2)
     e -> error ("Unknown expr: " <> showPpr e)
+
+decodeStatement :: StmtLR GhcPs GhcPs _ -> Statement
+decodeStatement = \case
+    BindStmt _ (rl -> pat) (rl -> e) -> SBind (decodePattern pat) (decodeExpr e)
+    LastStmt _ (rl -> e) _ _ -> SBody (decodeExpr e)
+    BodyStmt _ (rl -> e) _ _ -> SBody (decodeExpr e)
+    s -> error ("Unknown statement: " <> showPpr s)
 
 decodeGuardedExpr :: GRHS GhcPs (LHsExpr GhcPs) -> GuardedExpr
 decodeGuardedExpr = \case
