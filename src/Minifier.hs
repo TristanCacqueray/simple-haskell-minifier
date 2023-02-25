@@ -56,8 +56,10 @@ renameModule (Module imps decls) = Module imps (newDecls <> renamedDecls)
 
     -- look for repeated names
     repeatedNames :: [Name]
-    repeatedNames = foldMap (collectTopFreeNames topLevelBinds) decls
+    repeatedNames = removeException $ foldMap (collectTopFreeNames topLevelBinds) decls
       where
+        -- 'show' need special care to be moved to top-level.
+        removeException = filter (`notElem` ["show"])
         topLevelBinds :: BindedVars
         topLevelBinds = bindedVarsFromNameEnv topLevelEnv
         collectTopFreeNames bvars = \case
