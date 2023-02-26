@@ -105,9 +105,12 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
     renamePattern env = \case
         PVar n -> PVar (replaceName env n)
         PLit n -> PLit n
+        PList xs -> PList (renamePattern env <$> xs)
         PTup xs -> PTup (map (renamePattern env) xs)
         PNam n p -> PNam (replaceName env n) (renamePattern env p)
         PIco n p1 p2 -> PIco n (renamePattern env p1) (renamePattern env p2)
+        PCon n xs -> PCon n (map (renamePattern env) xs)
+        PPar p -> PPar (renamePattern env p)
 
     renameGExpr :: NameEnv -> GuardedExpr -> GuardedExpr
     renameGExpr env (GuardedExpr guards expr) = GuardedExpr (map (renameExpr env) guards) (renameExpr env expr)
@@ -150,8 +153,11 @@ collectPattern = \case
     PVar n -> [n]
     PLit{} -> []
     PTup xs -> concatMap collectPattern xs
+    PList xs -> concatMap collectPattern xs
     PNam n p -> n : collectPattern p
     PIco _ p1 p2 -> concatMap collectPattern [p1, p2]
+    PCon _ xs -> concatMap collectPattern xs
+    PPar p -> collectPattern p
 
 -- | Return the list of free variables.
 collectFreeNames :: BindedVars -> Binding -> [Name]
@@ -170,8 +176,11 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
         PVar n -> Set.singleton (LexicalFastString n)
         PLit{} -> mempty
         PTup xs -> foldMap goPats xs
+        PList xs -> foldMap goPats xs
         PNam n p -> foldMap goPats [PVar n, p]
         PIco _ p1 p2 -> foldMap goPats [p1, p2]
+        PCon _ xs -> foldMap goPats xs
+        PPar p -> goPats p
 
     goGexpr :: BindedVars -> GuardedExpr -> [Name]
     goGexpr exprVars (GuardedExpr guards expr) =
@@ -319,8 +328,11 @@ countOccurenceInBinding name (Binding bname matches)
             PVar n -> [n]
             PLit{} -> []
             PTup xs -> concatMap getName xs
+            PList xs -> concatMap getName xs
             PNam n p -> n : getName p
             PIco _ p1 p2 -> concatMap getName [p1, p2]
+            PCon _ xs -> concatMap getName xs
+            PPar p -> getName p
 
     countInGExpr :: GuardedExpr -> Int
     countInGExpr (GuardedExpr guards expr) = countInExprs (expr : guards)
@@ -410,8 +422,11 @@ renderBinding (Binding name matches) = map renderTopMatch matches
                     | otherwise = " " <> txt
              in res
         PTup xs -> "(" <> T.intercalate "," (map (T.dropWhile (== ' ') . renderPat) xs) <> ")"
+        PList xs -> "[" <> T.intercalate "," (map (T.dropWhile (== ' ') . renderPat) xs) <> "]"
         PNam n p -> " " <> ft n <> "@" <> renderPat p
         PIco n p1 p2 -> T.dropWhile (== ' ') (renderPat p1) <> ft n <> T.dropWhile (== ' ') (renderPat p2)
+        PCon n xs -> " " <> ft n <> " " <> concatNames (map renderPat xs)
+        PPar e -> "(" <> renderPat e <> ")"
 
     renderGuard sep (GuardedExpr guards expr) =
         let txt = case guards of

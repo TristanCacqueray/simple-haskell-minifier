@@ -118,10 +118,13 @@ decodePattern = \case
     LitPat _ litp -> PLit (fromPpr litp)
     NPat _ litp _ _ -> PLit (fromPpr litp)
     TuplePat _ xs _ -> PTup (map (decodePattern . rl) xs)
+    ListPat _ xs -> PList (map (decodePattern . rl) xs)
+    ParPat _ _ (rl -> p) _ -> PPar (decodePattern p)
     WildPat _ -> PLit "_"
     AsPat _ litp (rl -> pat) -> PNam (fromPpr litp) (decodePattern pat)
     ConPat _ a b -> case b of
         InfixCon (rl -> p1) (rl -> p2) -> PIco (fromPpr a) (decodePattern p1) (decodePattern p2)
+        PrefixCon _ xs -> PCon (fromPpr a) (map (decodePattern . rl) xs)
         _ -> error $ "Unknown conpat: " <> showPpr b
     p -> error $ "Unknown pattern: " <> showPpr p
 

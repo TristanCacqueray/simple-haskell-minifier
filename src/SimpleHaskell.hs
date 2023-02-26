@@ -52,10 +52,16 @@ data Pattern
       PLit Name
     | -- | List of binding: (p1, p2, ...)
       PTup [Pattern]
+    | -- | List pattern: [p1, p2]
+      PList [Pattern]
     | -- | Named pat: x@p
       PNam Name Pattern
     | -- | Infix constructor pat: p1:p2
       PIco Name Pattern Pattern
+    | -- | Prefix constructor pat: C p1 p2 ...
+      PCon Name [Pattern]
+    | -- | Parenthesis around pattern
+      PPar Pattern
     deriving (Show)
 
 -- | Binding declaration: pattern | guard = expr
