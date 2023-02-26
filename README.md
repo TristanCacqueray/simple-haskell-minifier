@@ -38,6 +38,7 @@ render 0 = putStrLn "game-over"
 render score
     | score >= 1, score <= 2 = pure ()
     | otherwise = putStrLn ("score: " ++ show score)
+
 eval pos | pos > 42 = True
          | otherwise = False
 
@@ -46,7 +47,7 @@ EOF
 ```haskell
 a 0=d"game-over";
 a e|e>=1,e<=2=pure()|c=d("score: "++show e);
-b e|e>42=True|c=False;
+b e|e>42=c|c=False;
 c=True;
 d=putStrLn
 ```

@@ -161,7 +161,12 @@ promoteRepeated (Module imps decls) = Module imps (renamedDecls <> newDecls)
             ValueDecl binding -> ValueDecl (inlineExprs renamedExprs binding)
             d -> d
         renamedExprs :: IExprs
-        renamedExprs = map (\n -> (n, EVar (mkRepeatedBinder n))) repeatedNames
+        renamedExprs = otherwiseTrue <> map (\n -> (n, EVar (mkRepeatedBinder n))) repeatedNames
+        -- if otherwise is promoted, then it can replace 'True' too
+        otherwiseTrue :: IExprs
+        otherwiseTrue
+            | "otherwise" `elem` repeatedNames = [("True", EVar (mkRepeatedBinder "otherwise"))]
+            | otherwise = []
 
     -- Create new Decl for promoted names
     newDecls :: [Decl]
