@@ -3,19 +3,20 @@ import Control.Concurrent(threadDelay);
 import Data.ByteString(elemIndices,hGetNonBlocking,hPut);
 import Data.ByteString.Char8(pack);
 import Data.ByteString(ByteString);
-a k|k<0=show(k`div`10)|i="";
+a l|l<0=show(l`div`10)|j="";
 b=hPut stdout.pack;
-c k|k>=0=">"|i="<";
-d 0(_,k,l,_,_)="VEL "++show l++" | ALT "++show k;
+c l|l>=0=">"|j="<";
+d 0(_,l,m,_,_)="VEL "++show m++" | ALT "++show l;
 d 1 _="--,"++[' '|_<-[0..69]]++"~|~";
-d 2(k,l,m,_,n)=[' '|_<-[0..floor(l/40)]]++n:c m++a k;
-e k=b$"\ESCc=<< TSP >>=   | "++unlines(map(flip d k)[0..2]);
-f(k,l,m,n,o) p=let q=(/=[]).flip elemIndices p;r=q 102;s=q 114;t|r='*'|s='['|i=' ';u|r=5|s=(-5)|i=0;v=max 0(l+m-1);w|k<0=0|i=1 in if v==0&&n>2900then g k m else h(k+1,w*v,w*(m+u-1),max n l,t);
-g k l|l>(-50)=print k|i=b"Lost\n";
-h k=do{e k;threadDelay 100000;input<-hGetNonBlocking j 42;f k input};
-main=do{hSetBuffering j NoBuffering;hSetEcho j False;h(-30,0,0,0,' ')};
-i=True;
-j=stdin
+d 2(l,m,n,_,o)=[' '|_<-[0..floor(m/40)]]++o:c n++a l;
+e l=b$"\ESCc=<< TSP >>=   | "++unlines(map(i d l)[0..2]);
+f(l,m,n,o,p) q=let r=(/=[]).i elemIndices q;s=r 102;t=r 114;u|s='*'|t='['|j=' ';v|s=5|t=(-5)|j=0;w=max 0(m+n-1);x|l<0=0|j=1 in if w==0&&o>2900then g l n else h(l+1,x*w,x*(n+v-1),max o m,u);
+g l m|m>(-50)=print l|j=b"Lost\n";
+h l=do{e l;threadDelay 100000;input<-hGetNonBlocking k 42;f l input};
+main=do{hSetBuffering k NoBuffering;hSetEcho k False;h(-30,0,0,0,' ')};
+i=flip;
+j=True;
+k=stdin
 {- AST:
 Module
     [ Import "System.IO"

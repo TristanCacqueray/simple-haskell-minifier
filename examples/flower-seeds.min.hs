@@ -1,15 +1,16 @@
 import System.IO(stdin,hSetBuffering,BufferMode(NoBuffering));
 import Control.Concurrent(threadDelay);
 import System.Environment(getArgs);
-a(i,j,k)=take k$iterate(\(l,m)->(l+pi*i/90,m+j/30))(0,0);
-b(i,j)=(h(60+j*cos i),h(0.5*(50+j*sin i)));
-c(i,j)=do{threadDelay 1000;g("\^[["++show j++";"++show i++"f❤")};
-d i=do{g("\^[cflower-seeds "<>show i);traverse(c.b)(a i)};
-e(i,j,k) l=let m|l=='j'=(-1)|l=='l'=1|otherwise=0;n|l=='k'=(-1)|l=='i'=1|otherwise=0;o|l=='c'=(-1)|l=='v'=1|otherwise=0 in f(i+m/20,max 0.1(j+n/10),max 1(k+o*17));
-f i=do{d i;input<-getChar;e i input};
-main=do{hSetBuffering stdin NoBuffering;args<-getArgs;case args of{ [] ->f(29.6,3,400);(i:_)->f(read i)}};
-g=putStrLn;
-h=round
+a(j,k,l)=take l$iterate(\(m,n)->(m+pi*j/90,n+k/30))(0,0);
+b(j,k)=(i(60+k*cos j),i(0.5*(50+k*sin j)));
+c(j,k)=do{threadDelay 1000;h("\^[["++show k++";"++show j++"f❤")};
+d j=do{h("\^[cflower-seeds "<>show j);traverse(c.b)(a j)};
+e(j,k,l) m=let n|m=='j'=(-1)|m=='l'=1|g=0;o|m=='k'=(-1)|m=='i'=1|g=0;p|m=='c'=(-1)|m=='v'=1|g=0 in f(j+n/20,max 0.1(k+o/10),max 1(l+p*17));
+f j=do{d j;input<-getChar;e j input};
+main=do{hSetBuffering stdin NoBuffering;args<-getArgs;case args of{ [] ->f(29.6,3,400);(j:_)->f(read j)}};
+g=True;
+h=putStrLn;
+i=round
 {- AST:
 Module
     [ Import "System.IO"

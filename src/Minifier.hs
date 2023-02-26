@@ -222,7 +222,8 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
             ELet bindings e ->
                 let bindVars :: BindedVars
                     bindVars = Set.fromList (map (\(Binding n _) -> LexicalFastString n) bindings)
-                 in goGexpr (Set.union exprVars bindVars) (GuardedExpr [] e)
+                    letVars = Set.union exprVars bindVars
+                 in foldMap (collectFreeNames letVars) bindings <> goGexpr letVars (GuardedExpr [] e)
 
         goStatement :: Statement -> [Name]
         goStatement = \case
