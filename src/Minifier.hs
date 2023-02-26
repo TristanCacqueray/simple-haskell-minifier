@@ -1,6 +1,7 @@
 -- | This module implements a haskell source minifier.
 module Minifier where
 
+import Data.Bifunctor (second)
 import Data.ByteString qualified as BS
 import Data.Char
 import Data.List (dropWhileEnd, group, intersperse, isSuffixOf, sort)
@@ -252,8 +253,17 @@ replacableNames = mapMaybe mkName . group . sort . map LexicalFastString
 inlineSingleUse :: Module -> Module
 inlineSingleUse (Module imps decls) = Module imps newDecls
   where
+    -- do an extra pass to inline expr present in inlined expr
     inlined :: [(FastString, Expr)]
-    inlined = mapMaybe declUsedOnce decls
+    inlined = map (second doSecondPass) inlined1
+      where
+        doSecondPass :: Expr -> Expr
+        doSecondPass e = case inlineExprs inlined1 (Binding "" [BindingMatch [] [GuardedExpr [] e]]) of
+            Binding _ [BindingMatch _ [GuardedExpr _ x]] -> x
+            _ -> error "bad pass"
+
+    inlined1 :: [(FastString, Expr)]
+    inlined1 = mapMaybe declUsedOnce decls
       where
         declUsedOnce = \case
             ValueDecl (Binding n bms@[BindingMatch [] [GuardedExpr [] e]])
