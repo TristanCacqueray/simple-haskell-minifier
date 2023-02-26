@@ -6,8 +6,8 @@ b(j,k)=(i(60+k*cos j),i(0.5*(50+k*sin j)));
 c(j,k)=do{threadDelay 1000;h("\^[["++show k++";"++show j++"f❤")};
 d j=do{h("\^[cflower-seeds "<>show j);traverse(c.b)(a j)};
 e(j,k,l) m=let n|m=='j'=(-1)|m=='l'=1|g=0;o|m=='k'=(-1)|m=='i'=1|g=0;p|m=='c'=(-1)|m=='v'=1|g=0 in f(j+n/20,max 0.1(k+o/10),max 1(l+p*17));
-f j=do{d j;input<-getChar;e j input};
-main=do{hSetBuffering stdin NoBuffering;args<-getArgs;case args of{ [] ->f(29.6,3,400);(j:_)->f(read j)}};
+f j=do{d j;k<-getChar;e j k};
+main=do{hSetBuffering stdin NoBuffering;j<-getArgs;case j of{ [] ->f(29.6,3,400);(k:_)->f(read k)}};
 g=True;
 h=putStrLn;
 i=round

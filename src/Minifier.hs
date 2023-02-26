@@ -4,7 +4,7 @@ module Minifier where
 import Data.Bifunctor (second)
 import Data.ByteString qualified as BS
 import Data.Char
-import Data.List (dropWhileEnd, group, intersperse, isSuffixOf, sort)
+import Data.List (dropWhileEnd, group, intersperse, isSuffixOf, mapAccumL, sort)
 import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
@@ -92,8 +92,8 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
         EApp e1 e2 -> EApp (renameExpr env e1) (renameExpr env e2)
         ELam bm -> ELam (renameMatch env bm)
         ECase e bms -> ECase (renameExpr env e) (map (renameMatch env) bms)
-        EDo xs -> EDo (map (renameStatement env) xs)
-        EComp xs -> EComp (map (renameStatement env) xs)
+        EDo xs -> EDo (snd $ mapAccumL renameStatement env xs)
+        EComp xs -> EComp (snd $ mapAccumL renameStatement env xs)
         EList xs -> EList (map (renameExpr env) xs)
         ETuple xs -> ETuple (map (renameExpr env) xs)
         EPar expr -> EPar (renameExpr env expr)
@@ -107,10 +107,13 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
                 newBindings = map (renameBinding newEnv) bindings
              in ELet newBindings (renameExpr newEnv e)
 
-    renameStatement :: NameEnv -> Statement -> Statement
+    renameStatement :: NameEnv -> Statement -> (NameEnv, Statement)
     renameStatement env = \case
-        SBind pat expr -> SBind (renamePattern env pat) (renameExpr env expr)
-        SBody expr -> SBody (renameExpr env expr)
+        SBind pat expr ->
+            let patEnv = zip (collectPattern pat) (availNames env)
+                bindEnv = patEnv <> env
+             in (bindEnv, SBind (renamePattern bindEnv pat) (renameExpr bindEnv expr))
+        SBody expr -> (env, SBody (renameExpr env expr))
 
 collectPattern :: Pattern -> [Name]
 collectPattern = \case

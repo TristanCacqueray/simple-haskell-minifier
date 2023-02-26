@@ -12,7 +12,7 @@ d 2(l,m,n,_,o)=[' '|_<-[0..floor(m/40)]]++o:c n++a l;
 e l=b$"\ESCc=<< TSP >>=   | "++unlines(map(i d l)[0..2]);
 f(l,m,n,o,p) q=let r=(/=[]).i elemIndices q;s=r 102;t=r 114;u|s='*'|t='['|j=' ';v|s=5|t=(-5)|j=0;w=max 0(m+n-1);x|l<0=0|j=1 in if w==0&&o>2900then g l n else h(l+1,x*w,x*(n+v-1),max o m,u);
 g l m|m>(-50)=print l|j=b"Lost\n";
-h l=do{e l;threadDelay 100000;input<-hGetNonBlocking k 42;f l input};
+h l=do{e l;threadDelay 100000;m<-hGetNonBlocking k 42;f l m};
 main=do{hSetBuffering k NoBuffering;hSetEcho k False;h(-30,0,0,0,' ')};
 i=flip;
 j=True;
