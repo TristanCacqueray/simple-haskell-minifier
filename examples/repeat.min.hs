@@ -1,6 +1,6 @@
-b=length;
 a c d=(b c+b d);
-main=print(a[][])
+main=print(a[][]);
+b=length
 {- AST:
 Module []
     [ ValueDecl

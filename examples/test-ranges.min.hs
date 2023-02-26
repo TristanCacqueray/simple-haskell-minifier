@@ -1,5 +1,5 @@
-a=print;
-main=a(take 5[0..])>>a[0..10]>>a[0,5..10]
+main=a(take 5[0..])>>a[0..10]>>a[0,5..10];
+a=print
 {- AST:
 Module []
     [ ValueDecl

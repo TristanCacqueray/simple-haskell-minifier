@@ -20,6 +20,9 @@ import Test.Tasty
 import Test.Tasty.Golden (goldenVsStringDiff)
 import Text.Pretty.Simple (pShowNoColor)
 
+minify :: Module -> Module
+minify = renameModule . promoteRepeated . inlineSingleUse
+
 names :: [Char]
 names = ['a' .. 'z']
 
@@ -28,63 +31,25 @@ availNames env = filter (`notElem` (snd <$> env)) names
 
 type NameEnv = [(Name, Char)]
 
-{- | Module renamer:
-
-- binders are renamed to single letter (except for "main")
-- repeated variables are promoted to top-level binder (see replacableNames when applicable)
--}
-renameModule :: Module -> Module
-renameModule (Module imps decls) = Module imps (newDecls <> renamedDecls)
+declNames :: [Decl] -> [Name]
+declNames = mapMaybe getName
   where
-    -- handle top-level renaming
-    renamedDecls :: [Decl]
-    renamedDecls = map (renameTopLevel (topLevelEnv <> repeatedNameEnv)) decls
+    getName = \case
+        (ValueDecl (Binding name _)) -> Just name
+        _ -> Nothing
 
+-- | Module renamer change binders to single letter (except for "main")
+renameModule :: Module -> Module
+renameModule (Module imps decls) = Module imps (map (renameTopLevel topLevelEnv) decls)
+  where
+    -- handle top-level declaration
     renameTopLevel :: NameEnv -> Decl -> Decl
     renameTopLevel env (ValueDecl binding) = ValueDecl (renameBinding env binding)
     renameTopLevel _ d = d
 
-    -- handle top-level declaration
+    -- create new names for top-level declaration
     topLevelEnv :: NameEnv
-    topLevelEnv = zip (mapMaybe collectTopLevel decls) names
-
-    collectTopLevel :: Decl -> Maybe Name
-    collectTopLevel (ValueDecl (Binding name _))
-        | name == "main" = Nothing
-        | otherwise = Just name
-    collectTopLevel _ = Nothing
-
-    -- look for repeated names
-    repeatedNames :: [Name]
-    repeatedNames = removeException $ foldMap (collectTopFreeNames topLevelBinds) decls
-      where
-        -- 'show' need special care to be moved to top-level.
-        removeException = filter (`notElem` ["show"])
-        topLevelBinds :: BindedVars
-        topLevelBinds = bindedVarsFromNameEnv topLevelEnv
-        collectTopFreeNames bvars = \case
-            ValueDecl b -> collectFreeNames bvars b
-            _ -> []
-
-        bindedVarsFromNameEnv :: NameEnv -> BindedVars
-        bindedVarsFromNameEnv = Set.fromList . map (LexicalFastString . fst)
-
-    repeatedNameEnv :: NameEnv
-    repeatedNameEnv = replacableNamesEnv (availNames topLevelEnv) repeatedNames
-
-    -- Create new Decl for promoted names
-    newDecls :: [Decl]
-    newDecls = map makeNewDecls repeatedNameEnv
-      where
-        makeNewDecls :: (Name, Char) -> Decl
-        makeNewDecls (origName, newName) =
-            let
-                oldName
-                    | origName == "otherwise" = "True"
-                    | otherwise = origName
-                match = BindingMatch [] [GuardedExpr [] (EVar oldName)]
-             in
-                ValueDecl (Binding (consFS newName mempty) [match])
+    topLevelEnv = zip (filter ("main" /=) $ declNames decls) names
 
 -- | Apply renameModule strategy to individual binding.
 renameBinding :: NameEnv -> Binding -> Binding
@@ -146,8 +111,6 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
         SBind pat expr -> SBind (renamePattern env pat) (renameExpr env expr)
         SBody expr -> SBody (renameExpr env expr)
 
-type BindedVars = Set LexicalFastString
-
 collectPattern :: Pattern -> [Name]
 collectPattern = \case
     PVar n -> [n]
@@ -158,6 +121,60 @@ collectPattern = \case
     PIco _ p1 p2 -> concatMap collectPattern [p1, p2]
     PCon _ xs -> concatMap collectPattern xs
     PPar p -> collectPattern p
+
+type BindedVars = Set LexicalFastString
+
+{- | Promote repeated name to top-level binding.
+
+Note: this only handles single variable like `putStr` or `maximum`.
+      input code should promote composition like `max 0` manually.
+-}
+promoteRepeated :: Module -> Module
+promoteRepeated (Module imps decls) = Module imps (renamedDecls <> newDecls)
+  where
+    topLevelNames :: [Name]
+    topLevelNames = monoPoly <> (declNames decls)
+
+    -- these names are problematic when automatically promoted to top-level
+    monoPoly = ["show", "max", "min"]
+
+    -- look for repeated names
+    repeatedNames :: [Name]
+    repeatedNames = replacableNames $ foldMap collectDeclFreeNames decls
+      where
+        topLevelBinds :: BindedVars
+        topLevelBinds = Set.fromList . map LexicalFastString $ topLevelNames
+
+        collectDeclFreeNames = \case
+            ValueDecl b -> collectFreeNames topLevelBinds b
+            _ -> []
+
+    mkRepeatedBinder :: Name -> Name
+    mkRepeatedBinder origName = "repeat_" <> origName
+
+    -- Replace repated name with top-level alias
+    renamedDecls = map doDecl decls
+      where
+        doDecl :: Decl -> Decl
+        doDecl = \case
+            ValueDecl binding -> ValueDecl (inlineExprs renamedExprs binding)
+            d -> d
+        renamedExprs :: IExprs
+        renamedExprs = map (\n -> (n, EVar (mkRepeatedBinder n))) repeatedNames
+
+    -- Create new Decl for promoted names
+    newDecls :: [Decl]
+    newDecls = map makeNewDecls repeatedNames
+      where
+        makeNewDecls :: Name -> Decl
+        makeNewDecls origName =
+            let
+                varValue
+                    | origName == "otherwise" = "True"
+                    | otherwise = origName
+                match = BindingMatch [] [GuardedExpr [] (EVar varValue)]
+             in
+                ValueDecl (Binding (mkRepeatedBinder origName) [match])
 
 -- | Return the list of free variables.
 collectFreeNames :: BindedVars -> Binding -> [Name]
@@ -211,9 +228,6 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
         goStatement = \case
             SBind _pat e -> goExpr e
             SBody e -> goExpr e
-
-replacableNamesEnv :: [Char] -> [Name] -> NameEnv
-replacableNamesEnv chars repeatedNames = zip (replacableNames repeatedNames) chars
 
 -- | Check if promoting a name to a top-level binder is useful.
 replacableNames :: [Name] -> [Name]
@@ -372,9 +386,6 @@ countOccurenceInBinding name (Binding bname matches)
     bindingNames :: [Binding] -> [Name]
     bindingNames = map (\(Binding n _) -> n)
 
-minify :: Module -> Module
-minify = renameModule . inlineSingleUse
-
 -- | Render a module with one declaration per line.
 renderModule :: Module -> Text
 renderModule (Module imps decls) = T.intercalate ";\n" content
@@ -441,8 +452,8 @@ renderBinding (Binding name matches) = map renderTopMatch matches
         EVar x -> ft x
         EApp e1 e2 -> renderExpr e1 `concatName` renderExpr e2
         ELam bm -> "\\" <> T.dropWhile (== ' ') (renderMatch "->" bm)
-        ECase e bms -> "case " <> renderExpr e <> " of {" <> T.intercalate ";" (map (renderMatch "->") bms) <> "}"
-        EDo xs -> "do {" <> T.intercalate ";" (map renderStatement xs) <> "}"
+        ECase e bms -> "case " <> renderExpr e <> " of{" <> T.intercalate ";" (map (renderMatch "->") bms) <> "}"
+        EDo xs -> "do{" <> T.intercalate ";" (map renderStatement xs) <> "}"
         EComp xs ->
             let (l, i) = (last xs, init xs)
              in "[" <> renderStatement l <> "|" <> T.intercalate "," (map renderStatement i) <> "]"
