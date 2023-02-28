@@ -9,9 +9,7 @@ import Data.Maybe (mapMaybe)
 import GHC.Data.Bag (bagToList)
 import GHC.Data.FastString (FastString, fsLit, mkFastString)
 import GHC.Data.StringBuffer (stringToStringBuffer)
-import GHC.Hs (ArithSeqInfo (..), GRHS (..), GRHSs (..), HsConDetails (..), HsDoFlavour (..), HsExpr (..), HsModule (..), HsTupArg (..), LHsExpr, Match (..), Pat (..), StmtLR (..))
-import GHC.Hs.Binds (HsBindLR (..), HsLocalBindsLR (..), HsValBindsLR (..))
-import GHC.Hs.Decls (HsDecl (..))
+import GHC.Hs (HsConDetails (..), HsModule (..), Pat (..))
 import GHC.Hs.Extension (GhcPs)
 import GHC.Hs.ImpExp (ImportDecl (..))
 import GHC.Parser (parseModuleNoHaddock)
@@ -23,7 +21,10 @@ import GHC.Utils.Error (DiagOpts (..))
 import GHC.Utils.Outputable (Outputable (ppr), defaultSDocContext, runSDoc)
 import GHC.Utils.Ppr (renderStyle, style)
 import Language.Haskell.Syntax (IdP)
-import Language.Haskell.Syntax.Expr (MatchGroup (..))
+import Language.Haskell.Syntax.Binds (HsBindLR (..), HsLocalBindsLR (..), HsValBindsLR (..))
+import Language.Haskell.Syntax.Decls (HsDecl (..))
+import Language.Haskell.Syntax.Expr (ArithSeqInfo (..), GRHS (..), GRHSs (..), HsDoFlavour (..), HsExpr (..), HsTupArg (..), LHsExpr, Match (..), MatchGroup (..), StmtLR (..))
+
 import SimpleHaskell
 
 -- | Call ghc-lib-parser 'parseModuleNoHaddock'
