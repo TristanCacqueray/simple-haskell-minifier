@@ -1,6 +1,7 @@
 -- | This module implements a haskell source minifier.
 module Minifier where
 
+import Control.Monad (when)
 import Data.Bifunctor (second)
 import Data.ByteString qualified as BS
 import Data.Char
@@ -537,7 +538,11 @@ main =
         [fp] -> readFile fp >>= doProcess fp
         _ -> getContents >>= doProcess "<stdin>"
   where
-    doProcess fp src = T.putStrLn $ minifies (fp, src)
+    doProcess fp src = do
+      let result = minifies (fp, src)
+      T.putStrLn result
+      when (fp /= "<stdin>") do
+        T.writeFile (fp <> ".min.hs") result
 
 -- | Test helpers
 minName :: FilePath -> FilePath
