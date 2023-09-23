@@ -141,7 +141,7 @@ promoteRepeated :: Module -> Module
 promoteRepeated (Module imps decls) = Module imps (renamedDecls <> newDecls)
   where
     topLevelNames :: [Name]
-    topLevelNames = monoPoly <> (declNames decls)
+    topLevelNames = monoPoly <> declNames decls
 
     -- these names are problematic when automatically promoted to top-level
     monoPoly = ["show", "max", "min"]
