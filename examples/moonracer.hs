@@ -1,5 +1,5 @@
 module MoonLander where
-pat = [0,88..]
+pat = [0::Int,88..]
 tup = (0, True)
 step pos =
   let (x,_) = tup

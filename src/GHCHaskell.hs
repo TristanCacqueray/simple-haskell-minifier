@@ -92,6 +92,7 @@ decodeExpr = \case
         _ -> error ("Unknown do flavor: " <> showPpr xs)
     SectionL{} -> ELit "SectionL"
     SectionR _ (rl -> e1) (rl -> e2) -> EApp (decodeExpr e1) (decodeExpr e2)
+    ExprWithTySig _ (rl -> e) _ -> decodeExpr e
     e -> error ("Unknown expr: " <> showPpr e)
 
 decodeStatement :: StmtLR GhcPs GhcPs _ -> Statement
