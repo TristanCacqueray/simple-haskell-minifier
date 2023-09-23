@@ -139,7 +139,12 @@ decodeDecls = \case
 decodeBinding :: HsBindLR GhcPs GhcPs -> Binding
 decodeBinding = \case
     FunBind _ (rl -> fid) mg _ -> Binding (decodeIdp fid) (map (decodeMatch . rl) (rl mg.mg_alts))
-    _ -> error "Unknown binding"
+    PatBind _ (rl -> pat) rhs _ -> BindingPattern (decodePattern pat) (decodeGRHSs rhs)
+    x -> error ("Unknown binding: " <> showPpr x)
+
+decodeGRHSs :: GRHSs GhcPs (LHsExpr GhcPs) -> [GuardedExpr]
+decodeGRHSs = \case
+    GRHSs _ rhs _ -> map (decodeGuardedExpr . rl) rhs
 
 decodeMatch :: Match GhcPs (LHsExpr GhcPs) -> BindingMatch
 decodeMatch match =

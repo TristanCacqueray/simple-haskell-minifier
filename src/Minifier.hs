@@ -54,7 +54,9 @@ renameModule (Module imps decls) = Module imps (map (renameTopLevel topLevelEnv)
 
 -- | Apply renameModule strategy to individual binding.
 renameBinding :: NameEnv -> Binding -> Binding
-renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map (renameMatch benv) matches)
+renameBinding benv = \case
+  Binding name matches -> Binding (replaceName benv name) (map (renameMatch benv) matches)
+  BindingPattern pat exprs -> BindingPattern (renamePattern benv pat) (map (renameGExpr benv) exprs)
   where
     replaceName :: NameEnv -> Name -> Name
     replaceName env oldName = case lookup oldName env of
@@ -81,8 +83,10 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
     renameGExpr :: NameEnv -> GuardedExpr -> GuardedExpr
     renameGExpr env (GuardedExpr guards expr) = GuardedExpr (map (renameExpr env) guards) (renameExpr env expr)
 
-    collectBinding :: (Char, Binding) -> (Name, Char)
-    collectBinding (c, Binding bname _) = (bname, c)
+    collectBinding :: Binding -> [Name]
+    collectBinding = \case
+      Binding bname _ -> [bname]
+      BindingPattern pat _ -> collectPattern pat
 
     renameExpr :: NameEnv -> Expr -> Expr
     renameExpr env = \case
@@ -102,7 +106,7 @@ renameBinding benv (Binding name matches) = Binding (replaceName benv name) (map
         ELet bindings e ->
             let bindingEnv :: NameEnv
                 -- TODO: remove the names from the parent that are not used in sub exprs.
-                bindingEnv = zipWith (curry collectBinding) (availNames env) bindings
+                bindingEnv = zip (concatMap collectBinding bindings) (availNames env)
                 newEnv = bindingEnv <> env
                 newBindings = map (renameBinding newEnv) bindings
              in ELet newBindings (renameExpr newEnv e)
@@ -187,15 +191,18 @@ promoteRepeated (Module imps decls) = Module imps (renamedDecls <> newDecls)
 
 -- | Return the list of free variables.
 collectFreeNames :: BindedVars -> Binding -> [Name]
-collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
+collectFreeNames parentVars = \case
+  Binding name matches ->
+    let scopeVars = Set.insert (LexicalFastString name) parentVars
+     in foldMap (goMatches scopeVars) matches
+  BindingPattern pat gexprs ->
+    let scopeVars = parentVars <> goPats pat
+     in foldMap (goGexpr scopeVars scopeVars) gexprs
   where
-    scopeVars :: BindedVars
-    scopeVars = Set.insert (LexicalFastString name) parentVars
-
-    goMatches :: BindingMatch -> [Name]
-    goMatches (BindingMatch pats gexprs) =
+    goMatches :: BindedVars -> BindingMatch -> [Name]
+    goMatches scopeVars (BindingMatch pats gexprs) =
         let bindVars = Set.union scopeVars (foldMap goPats pats)
-         in foldMap (goGexpr bindVars) gexprs
+         in foldMap (goGexpr scopeVars bindVars) gexprs
 
     goPats :: Pattern -> BindedVars
     goPats = \case
@@ -208,8 +215,8 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
         PCon _ xs -> foldMap goPats xs
         PPar p -> goPats p
 
-    goGexpr :: BindedVars -> GuardedExpr -> [Name]
-    goGexpr exprVars (GuardedExpr guards expr) =
+    goGexpr :: BindedVars -> BindedVars -> GuardedExpr -> [Name]
+    goGexpr scopeVars exprVars (GuardedExpr guards expr) =
         let isFree n = LexicalFastString n `Set.notMember` exprVars
          in filter isFree (foldMap goExpr (expr : guards))
       where
@@ -219,8 +226,8 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
             EVar n -> [n]
             EOp e1 e2 e3 -> foldMap goExpr [e1, e2, e3]
             EApp e1 e2 -> foldMap goExpr [e1, e2]
-            ELam bm -> goMatches bm
-            ECase e bms -> goExpr e <> concatMap goMatches bms
+            ELam bm -> goMatches scopeVars bm
+            ECase e bms -> goExpr e <> concatMap (goMatches scopeVars) bms
             EDo xs -> foldMap goStatement xs
             EComp xs -> foldMap goStatement xs
             EList xs -> foldMap goExpr xs
@@ -230,9 +237,14 @@ collectFreeNames parentVars (Binding name matches) = foldMap goMatches matches
             ERange e1 mE2 mE3 -> foldMap goExpr (e1 : maybeToList mE2 <> maybeToList mE3)
             ELet bindings e ->
                 let bindVars :: BindedVars
-                    bindVars = Set.fromList (map (\(Binding n _) -> LexicalFastString n) bindings)
+                    bindVars = foldMap goBinding bindings
                     letVars = Set.union exprVars bindVars
-                 in foldMap (collectFreeNames letVars) bindings <> goGexpr letVars (GuardedExpr [] e)
+                 in foldMap (collectFreeNames letVars) bindings <> goGexpr scopeVars letVars (GuardedExpr [] e)
+
+        goBinding :: Binding -> BindedVars
+        goBinding = \case
+          Binding n _ -> Set.fromList [LexicalFastString n]
+          BindingPattern pat _ -> goPats pat
 
         goStatement :: Statement -> [Name]
         goStatement = \case
@@ -305,7 +317,9 @@ inlineSingleUse (Module imps decls) = Module imps newDecls
 type IExprs = [(FastString, Expr)]
 
 inlineExprs :: IExprs -> Binding -> Binding
-inlineExprs inlined (Binding bname matches) = Binding bname (map (inlineMatch inlined) matches)
+inlineExprs inlined = \case
+  Binding bname matches -> Binding bname (map (inlineMatch inlined) matches)
+  BindingPattern pat gexprs -> BindingPattern pat (map (inlineGexpr inlined) gexprs)
   where
     inlineMatch :: IExprs -> BindingMatch -> BindingMatch
     inlineMatch ix (BindingMatch pats gexprs) = BindingMatch pats (map (inlineGexpr (removeShadowed ix)) gexprs)
@@ -345,9 +359,11 @@ inlineExprs inlined (Binding bname matches) = Binding bname (map (inlineMatch in
         SBody e -> SBody (inlineExpr ix e)
 
 countOccurenceInBinding :: Name -> Binding -> Int
-countOccurenceInBinding name (Binding bname matches)
-    | name == bname = 0
-    | otherwise = sum (map countInMatches matches)
+countOccurenceInBinding name = \case
+  Binding bname matches
+    | name == bname -> 0
+    | otherwise -> sum (map countInMatches matches)
+  BindingPattern _ gexprs -> sum (map countInGExpr gexprs)
   where
     countInMatches :: BindingMatch -> Int
     countInMatches (BindingMatch pats gexprs)
@@ -390,7 +406,7 @@ countOccurenceInBinding name (Binding bname matches)
         EPar e -> countInExpr e
         ELet bindings expr
             | -- The name is shadowed by a binding
-              name `elem` bindingNames bindings ->
+              name `elem` concatMap bindingNames bindings ->
                 0
             | otherwise ->
                 countInExpr expr + sum (map (countOccurenceInBinding name) bindings)
@@ -402,8 +418,11 @@ countOccurenceInBinding name (Binding bname matches)
         SBind _pat e -> countInExpr e
         SBody e -> countInExpr e
 
-    bindingNames :: [Binding] -> [Name]
-    bindingNames = map (\(Binding n _) -> n)
+    bindingNames :: Binding -> [Name]
+    bindingNames = \case
+      Binding n _ -> [n]
+      BindingPattern pat _ -> patternNames [pat]
+
 
 -- | Render a module with one declaration per line.
 renderModule :: Module -> Text
@@ -433,10 +452,12 @@ concatNames :: [Text] -> Text
 concatNames = foldr concatName ""
 
 renderBinding :: Binding -> [Text]
-renderBinding (Binding name matches) = map renderTopMatch matches
+renderBinding = \case
+  Binding name matches -> map (renderTopMatch name) matches
+  BindingPattern pat exprs -> [renderPat pat <> mconcat (map (renderGuard "=") exprs)]
   where
-    renderTopMatch :: BindingMatch -> Text
-    renderTopMatch bm = ft name <> renderMatch "=" bm
+    renderTopMatch :: FastString -> BindingMatch -> Text
+    renderTopMatch name bm = ft name <> renderMatch "=" bm
 
     renderMatch :: Text -> BindingMatch -> Text
     renderMatch sep (BindingMatch pats exprs) =

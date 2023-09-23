@@ -68,8 +68,12 @@ data Pattern
 data BindingMatch = BindingMatch [Pattern] [GuardedExpr]
     deriving (Show)
 
--- | Binding: f x = expr
-data Binding = Binding Name [BindingMatch]
+-- | Binding
+data Binding
+    = -- | f x = expr
+      Binding Name [BindingMatch]
+    | -- | (x,y) = expr
+      BindingPattern Pattern [GuardedExpr]
     deriving (Show)
 
 -- | Top level declaration
