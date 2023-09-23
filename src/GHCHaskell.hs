@@ -73,8 +73,8 @@ decodeExpr = \case
         let (e1, e2, e3) = case seq' of
                 From (rl -> f) -> (f, Nothing, Nothing)
                 FromTo (rl -> f) (rl -> t) -> (f, Just t, Nothing)
+                FromThen (rl -> f) (rl -> s) -> (f, Nothing, Just s)
                 FromThenTo (rl -> f) (rl -> s) (rl -> t) -> (f, Just t, Just s)
-                _ -> error ("Unknown seq: " <> showPpr seq')
          in ERange (decodeExpr e1) (decodeExpr <$> e2) (decodeExpr <$> e3)
     ExplicitList _x xs -> EList $ map (decodeExpr . rl) xs
     ExplicitTuple _x xs _ ->
