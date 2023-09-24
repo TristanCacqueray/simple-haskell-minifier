@@ -1,7 +1,6 @@
 a=[0,88..];
-b d=let (e,_)=(0,c);f h i=abs(h-i)<1;(g,_)=(f 0e,f 1e) in (d,g);
-main|b 0==(0,c)=pure()|otherwise=putStrLn"Ooops";
-c=True
+b c=let (d,_)=(0,True);e g h=abs(g-h)<1;(f,_)=(e 0d,e 1d) in (c,f);
+main|b 0==(0,True)=pure()|otherwise=putStrLn"Ooops"
 {- AST:
 Module []
     [ ValueDecl

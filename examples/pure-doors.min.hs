@@ -1,13 +1,12 @@
-a=1:2:zipWith(+)a(g a);
-b h i j="|"<>f j h<>i<>f(7-j)h<>"|\n";
-c 5(0,h) i j k|h/=i="Crash!"<>k[]|otherwise=c 5(e j)i(g j)k;
-c 5(h,i) j k l=b ' '"^"j<>"[jkl]> "<>l((h-1,i):k);
-c h i@(j,k) l m n=(if h==5-j then b '-'" "k else b ' '" "7)<>c(h+1)i l m n;
-d h i j k="\ESCcpure-doors\n"<>c 0(e i)j(g i)(\l->case (l,k) of{(_:_,m:'\n':n)|m>'h'&&m<'n'->d(h+1)l(j+fromEnum m-107)n; _->(if h>5then" GG, your score is: "<>show(div h 5)else"")<>"\n"});
-main=interact(d(-1)(map(\h->(5,mod h 8))a)3);
-e=head;
-f=replicate;
-g=tail
+a=1:2:zipWith(+)a(f a);
+b g h i="|"<>e i g<>h<>e(7-i)g<>"|\n";
+c 5(0,g) h i j|g/=h="Crash!"<>j[]|otherwise=c 5(head i)h(f i)j;
+c 5(g,h) i j k=b ' '"^"i<>"[jkl]> "<>k((g-1,h):j);
+c g h@(i,j) k l m=(if g==5-i then b '-'" "j else b ' '" "7)<>c(g+1)h k l m;
+d g h i j="\ESCcpure-doors\n"<>c 0(head h)i(f h)(\k->case (k,j) of{(_:_,l:'\n':m)|l>'h'&&l<'n'->d(g+1)k(i+fromEnum l-107)m; _->(if g>5then" GG, your score is: "<>show(div g 5)else"")<>"\n"});
+main=interact(d(-1)(map(\g->(5,mod g 8))a)3);
+e=replicate;
+f=tail
 {- AST:
 Module []
     [ TypeDecl "type Position = Int"

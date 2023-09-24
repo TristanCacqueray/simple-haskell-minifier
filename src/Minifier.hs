@@ -260,10 +260,10 @@ replacableNames = mapMaybe mkName . group . sort . map LexicalFastString
     mkName [] = Nothing
     mkName [_] = Nothing
     mkName xs@(LexicalFastString x : _)
-        | not (any isLetter name) = Nothing
-        | l == 2 && c >= 5 = Just x
-        | l == 3 || l == 4 && c >= 3 = Just x
-        | l > 1 && c >= 2 = Just x
+        | not (any isAlphaNum name) = Nothing
+        | l >= 5 && c >= 2 = Just x
+        | l >= 3 && c >= 3 = Just x
+        | l >= 2 && c >= 5 = Just x
         | otherwise = Nothing
       where
         name = unpackFS x
