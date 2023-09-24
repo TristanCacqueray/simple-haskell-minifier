@@ -26,7 +26,7 @@ minify :: Module -> Module
 minify = renameModule . promoteRepeated . inlineSingleUse
 
 names :: [Char]
-names = ['a' .. 'z']
+names = ['a' .. 'z'] ++ ['α'..'ω']
 
 availNames :: NameEnv -> [Char]
 availNames env = filter (`notElem` (snd <$> env)) names
