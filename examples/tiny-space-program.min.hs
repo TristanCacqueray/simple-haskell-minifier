@@ -10,7 +10,7 @@ d 0(_,k,l,_,_)="VEL "++show l++" | ALT "++show k;
 d 1 _="--,"++[' '|_<-[0..69]]++"~|~";
 d 2(k,l,m,_,n)=[' '|_<-[0..floor(l/40)]]++n:c m++a k;
 e k=b$"\ESCc=<< TSP >>=   | "++unlines(map(flip d k)[0..2]);
-f(k,l,m,n,o) p=let q=(/=[]).flip elemIndices p;r=q 102;s=q 114;t|r='*'|s='['|i=' ';u|r=5|s=(-5)|i=0;v=max 0(l+m-1);w|k<0=0|i=1 in if v==0&&n>2900then g k m else h(k+1,w*v,w*(m+u-1),max n l,t);
+f(k,l,m,n,o)p=let q=(/=[]).flip elemIndices p;r=q 102;s=q 114;t|r='*'|s='['|i=' ';u|r=5|s=(-5)|i=0;v=max 0(l+m-1);w|k<0=0|i=1 in if v==0&&n>2900then g k m else h(k+1,w*v,w*(m+u-1),max n l,t);
 g k l|l>(-50)=print k|i=b"Lost\n";
 h k=do{e k;threadDelay 100000;l<-hGetNonBlocking j 42;f k l};
 main=do{hSetBuffering j NoBuffering;hSetEcho j False;h(-30,0,0,0,' ')};

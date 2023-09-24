@@ -8,7 +8,7 @@ f p(q,r,s)=(q*m p-r*o p,q*o p+r*m p,s);
 g(p,q,r)=(p+0.05,q-0.4,r);
 h p=min(e 0.8 0.05(f 1p))(e 0.4 0.04(g(f(-1)p)));
 i _ 10 _=id;
-i p q(r,s,(t,u,v))=let w=t*m p-v*o p;x=t*o p+v*m p;y=h(w,u,x) in if y<=0.01then(s,r)%cell '%' else i p(q+1)(r,s,(t,u,v+y));
+i p q(r,s,(t,u,v))=let w=t*m p-v*o p;x=t*o p+v*m p;y=h(w,u,x)in if y<=0.01then(s,r)%cell '%' else i p(q+1)(r,s,(t,u,v+y));
 j p=foldr(i(p/10)0)(blankPlane(n a)(n b))[(n r,n q,(r/a*2-1,(q/b*2-1)*0.2,-10))|q<-[0..b],r<-[0..a]];
 main=playGame(Game 13 0(\_ p _->p+1)(l j)(l False));
 k=abs;

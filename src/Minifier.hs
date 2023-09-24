@@ -427,8 +427,9 @@ countOccurenceInBinding name = \case
 
 -- | Render a module with one declaration per line.
 renderModule :: Module -> Text
-renderModule (Module imps decls) = T.intercalate ";\n" content
+renderModule (Module imps decls) = removeSpace $ T.intercalate ";\n" content
   where
+    removeSpace = T.replace "{ " "{" . T.replace "; " ";" . T.replace ") " ")"
     content :: [Text]
     content = map renderImport imps <> concatMap renderDecl decls
     renderImport :: Import -> Text
@@ -444,6 +445,7 @@ concatName a b
     | next `elem` ['"', '(', '[', ':', ','] = a <> b
     | prev `elem` ['"', ')', ']', ':', ','] = a <> b
     | isNumber prev && not (isNumber next) = a <> b
+    | T.isPrefixOf " " b = a <> b
     | otherwise = a <> " " <> b
   where
     prev = maybe minBound snd (T.unsnoc a)
@@ -477,8 +479,8 @@ renderBinding = \case
         PList xs -> "[" <> T.intercalate "," (map (T.dropWhile (== ' ') . renderPat) xs) <> "]"
         PNam n p -> " " <> ft n <> "@" <> renderPat p
         PIco n p1 p2 -> T.dropWhile (== ' ') (renderPat p1) <> ft n <> T.dropWhile (== ' ') (renderPat p2)
-        PCon n xs -> " " <> ft n <> " " <> concatNames (map renderPat xs)
-        PPar e -> "(" <> renderPat e <> ")"
+        PCon n xs -> " " <> ft n <> concatNames (map renderPat xs)
+        PPar e -> "(" <> T.strip (renderPat e) <> ")"
 
     renderGuard sep (GuardedExpr guards expr) =
         let txt = case guards of

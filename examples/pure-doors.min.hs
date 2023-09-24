@@ -1,9 +1,9 @@
 a=1:2:zipWith(+)a(f a);
 b g h i="|"<>e i g<>h<>e(7-i)g<>"|\n";
-c 5(0,g) h i j|g/=h="Crash!"<>j[]|otherwise=c 5(head i)h(f i)j;
-c 5(g,h) i j k=b ' '"^"i<>"[jkl]> "<>k((g-1,h):j);
-c g h@(i,j) k l m=(if g==5-i then b '-'" "j else b ' '" "7)<>c(g+1)h k l m;
-d g h i j="\ESCcpure-doors\n"<>c 0(head h)i(f h)(\k->case (k,j) of{(_:_,l:'\n':m)|l>'h'&&l<'n'->d(g+1)k(i+fromEnum l-107)m; _->(if g>5then" GG, your score is: "<>show(div g 5)else"")<>"\n"});
+c 5(0,g)h i j|g/=h="Crash!"<>j[]|otherwise=c 5(head i)h(f i)j;
+c 5(g,h)i j k=b ' '"^"i<>"[jkl]> "<>k((g-1,h):j);
+c g h@(i,j)k l m=(if g==5-i then b '-'" "j else b ' '" "7)<>c(g+1)h k l m;
+d g h i j="\ESCcpure-doors\n"<>c 0(head h)i(f h)(\k->case (k,j)of{(_:_,l:'\n':m)|l>'h'&&l<'n'->d(g+1)k(i+fromEnum l-107)m;_->(if g>5then" GG, your score is: "<>show(div g 5)else"")<>"\n"});
 main=interact(d(-1)(map(\g->(5,mod g 8))a)3);
 e=replicate;
 f=tail

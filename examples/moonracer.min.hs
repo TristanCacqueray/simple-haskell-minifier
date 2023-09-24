@@ -1,7 +1,7 @@
 a=[0,88..];
-b d=[d,d];
-c d=let (e,_)=(0,True);f h i=abs(h-i)<1;(g,_)=(f 0e,f 1e) in (d,g);
-main|c 0==(0,True)=pure()|otherwise=putStrLn"Ooops"
+b e=[e,e];
+c(EventKey(SpecialKey e)f _ _)=(e,f);
+d e=let (f,_)=(0,True);g i j=abs(i-j)<1;(h,_)=(g 0f,g 1f)in (e,h)
 {- AST:
 Module []
     [ ValueDecl
@@ -37,6 +37,30 @@ Module []
                     ( EList
                         [ EVar "p"
                         , EVar "p"
+                        ]
+                    )
+                ]
+            ]
+        )
+    , ValueDecl
+        ( Binding "handleEvent"
+            [ BindingMatch
+                [ PPar
+                    ( PCon "EventKey"
+                        [ PPar
+                            ( PCon "SpecialKey"
+                                [ PVar "key" ]
+                            )
+                        , PVar "dir"
+                        , PLit "_"
+                        , PLit "_"
+                        ]
+                    )
+                ]
+                [ GuardedExpr []
+                    ( ETuple
+                        [ EVar "key"
+                        , EVar "dir"
                         ]
                     )
                 ]
@@ -108,35 +132,6 @@ Module []
                             , EVar "res"
                             ]
                         )
-                    )
-                ]
-            ]
-        )
-    , ValueDecl
-        ( Binding "main"
-            [ BindingMatch []
-                [ GuardedExpr
-                    [ EOp
-                        ( EApp
-                            ( EVar "step" )
-                            ( ELit "0" )
-                        )
-                        ( EVar "==" )
-                        ( ETuple
-                            [ ELit "0"
-                            , EVar "True"
-                            ]
-                        )
-                    ]
-                    ( EApp
-                        ( EVar "pure" )
-                        ( EVar "()" )
-                    )
-                , GuardedExpr
-                    [ EVar "otherwise" ]
-                    ( EApp
-                        ( EVar "putStrLn" )
-                        ( ELit ""Ooops"" )
                     )
                 ]
             ]
