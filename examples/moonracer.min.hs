@@ -1,6 +1,7 @@
 a=[0,88..];
-b c=let (d,_)=(0,True);e g h=abs(g-h)<1;(f,_)=(e 0d,e 1d) in (c,f);
-main|b 0==(0,True)=pure()|otherwise=putStrLn"Ooops"
+b d=[d,d];
+c d=let (e,_)=(0,True);f h i=abs(h-i)<1;(g,_)=(f 0e,f 1e) in (d,g);
+main|c 0==(0,True)=pure()|otherwise=putStrLn"Ooops"
 {- AST:
 Module []
     [ ValueDecl
@@ -23,6 +24,19 @@ Module []
                     ( ETuple
                         [ ELit "0"
                         , EVar "True"
+                        ]
+                    )
+                ]
+            ]
+        )
+    , ValueDecl
+        ( Binding "draw"
+            [ BindingMatch
+                [ PVar "p" ]
+                [ GuardedExpr []
+                    ( EList
+                        [ EVar "p"
+                        , EVar "p"
                         ]
                     )
                 ]

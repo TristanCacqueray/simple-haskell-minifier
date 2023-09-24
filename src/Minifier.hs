@@ -500,7 +500,7 @@ renderBinding = \case
              in "[" <> renderStatement l <> "|" <> T.intercalate "," (map renderStatement i) <> "]"
         EOp e1 e2 e3 -> renderExpr e1 <> renderOperator (renderExpr e2) <> renderExpr e3
         EPar e -> "(" <> renderExpr e <> ")"
-        EList xs -> "[" <> mconcat (map renderExpr xs) <> "]"
+        EList xs -> "[" <> T.intercalate "," (map renderExpr xs) <> "]"
         ETuple xs -> "(" <> T.intercalate "," (map renderExpr xs) <> ")"
         EIf e1 e2 e3 -> concatNames ["if", renderExprNoPar e1, "then", renderExprNoPar e2, "else", renderExprNoPar e3]
         ERange e1 mE2 mE3 -> "[" <> renderExpr e1 <> maybe "" (mappend "," . renderExpr) mE3 <> ".." <> maybe "" renderExpr mE2 <> "]"

@@ -1,6 +1,7 @@
 module MoonLander where
 pat = [0::Int,88..]
 tup = (0, True)
+draw p = [p, p]
 step pos =
   let (x,_) = tup
       hit m n = abs (m - n) < 1

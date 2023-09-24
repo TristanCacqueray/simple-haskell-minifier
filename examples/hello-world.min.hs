@@ -2,7 +2,7 @@ import GHC.Conc(threadDelay);
 import System.IO;
 a 0=d"game-over";
 a e|e>=1,e<=2=pure()|c=d("score: "++show e);
-b|c=[123];
+b|c=[1,2,3];
 main=a(21*let e=1;f=1 in e+f);
 c=True;
 d=putStrLn
